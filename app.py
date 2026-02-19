@@ -5,9 +5,8 @@ import re
 # ==========================================
 # 0. 讀取 Google Sheet 雲端資料庫函數
 # ==========================================
-@st.cache_data(ttl=60) # 每 60 秒重新讀取一次，確保見到最新加嘅舊料
+@st.cache_data(ttl=60)
 def load_gsheet():
-    # 你的 Google Sheet ID
     sheet_id = "1-wHN-fHSIrziB-KfM1Pck9S8qh8nWqDF-kMERfInoWg"
     csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
     try:
@@ -263,24 +262,27 @@ fs278_db = {
     }
 }
 
-# 智能組裝段落函數：自動加入「他」、「此外，他」等主語
-def build_smart_paragraph(sentences, default_subject="他"):
+# 智能組裝段落函數：自動切換主語，讓文筆更自然
+def build_smart_paragraph(sentences, default_subject="他", alt_subjects=None):
     if not sentences:
         return ""
     
+    if alt_subjects is None:
+        alt_subjects = ["該員", "其"]
+        
     connectors = [
         f"{default_subject}",
         f"此外，{default_subject}",
-        f"同時，{default_subject}",
+        f"同時，{alt_subjects[0]}",
         f"另一方面，{default_subject}",
         f"再者，{default_subject}",
-        f"{default_subject}亦"
+        f"{alt_subjects[1]}亦"
     ]
     
     result_text = ""
     for i, sentence in enumerate(sentences):
         conn = connectors[i % len(connectors)]
-        # 確保句子結尾格式統一
+        # 移除句子末尾可能多餘的句號
         clean_sentence = sentence.rstrip("。")
         result_text += f"{conn}{clean_sentence}。"
         
@@ -304,10 +306,11 @@ st.markdown("""
         color: #555555;
         margin-bottom: 20px;
     }
-    /* 將部分選單的 label 隱藏，令排版更整齊 */
+    /* 隱藏下拉選單的 label 以整齊排版 */
     div[data-testid="stSelectbox"] > label {
         color: #333333;
         font-weight: 600;
+        display: none;
     }
     .preview-box {
         font-size: 13px;
@@ -336,10 +339,18 @@ with tab1:
     with st.container(border=True):
         st.markdown("**1. 基本資料 (Basic Information)**")
         col1, col2, col3, col4 = st.columns(4)
-        with col1: member_name = st.text_input("人員姓名", "王國良")
-        with col2: member_rank = st.selectbox("職級", ["消防隊目", "消防總隊目", "消防員", "見習消防員"])
-        with col3: overall_rating = st.selectbox("整體評級", ["優 (A)", "良 (B)", "常/當 (C)"])
-        with col4: future_plan = st.text_input("未來動向 / 建議訓練", "參加煙火特攻員訓練課程")
+        with col1: 
+            st.markdown("人員姓名")
+            member_name = st.text_input("人員姓名", "王國良", label_visibility="collapsed")
+        with col2: 
+            st.markdown("職級")
+            member_rank = st.selectbox("職級", ["消防隊目", "消防總隊目", "消防員", "見習消防員"], label_visibility="collapsed")
+        with col3: 
+            st.markdown("整體評級")
+            overall_rating = st.selectbox("整體評級", ["優 (A)", "良 (B)", "常/當 (C)"], label_visibility="collapsed")
+        with col4: 
+            st.markdown("未來動向 / 建議訓練")
+            future_plan = st.text_input("未來動向 / 建議訓練", "參加煙火特攻員訓練課程", label_visibility="collapsed")
 
     with st.container(border=True):
         st.markdown("**2. FS-278 評分細項與寫法款式 (Assessment Criteria)**")
@@ -355,10 +366,11 @@ with tab1:
                 # 第一個欄位
                 item1 = items_list[i]
                 with col_a1:
-                    grade1 = st.selectbox(item1, ["優 (A)", "良 (B)", "常/當 (C)"], key=f"g_{i}")
+                    st.markdown(f"**{item1}**")
+                    grade1 = st.selectbox(item1, ["優 (A)", "良 (B)", "常/當 (C)"], key=f"g_{i}", label_visibility="collapsed")
                 with col_a2:
+                    st.markdown("**款式選擇**")
                     variations1 = fs278_db[item1][grade1]
-                    # 在選單顯示選項名稱 (如 寫法一、寫法二)
                     selected_idx1 = st.selectbox(
                         f"{item1}款式", 
                         options=range(len(variations1)), 
@@ -367,16 +379,17 @@ with tab1:
                         label_visibility="collapsed"
                     )
                     selections[item1] = variations1[selected_idx1]
-                    # 即時預覽所選句子
                     preview1 = variations1[selected_idx1].get('通用', variations1[selected_idx1].get('行動', ''))
-                    st.markdown(f"<div class='preview-box'>📝 預覽：他{preview1}。</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='preview-box'>📝 他{preview1}。</div>", unsafe_allow_html=True)
                 
                 # 第二個欄位
                 if i + 1 < len(items_list):
                     item2 = items_list[i+1]
                     with col_b1:
-                        grade2 = st.selectbox(item2, ["優 (A)", "良 (B)", "常/當 (C)"], key=f"g_{i+1}")
+                        st.markdown(f"**{item2}**")
+                        grade2 = st.selectbox(item2, ["優 (A)", "良 (B)", "常/當 (C)"], key=f"g_{i+1}", label_visibility="collapsed")
                     with col_b2:
+                        st.markdown("**款式選擇**")
                         variations2 = fs278_db[item2][grade2]
                         selected_idx2 = st.selectbox(
                             f"{item2}款式", 
@@ -387,12 +400,14 @@ with tab1:
                         )
                         selections[item2] = variations2[selected_idx2]
                         preview2 = variations2[selected_idx2].get('通用', variations2[selected_idx2].get('行動', ''))
-                        st.markdown(f"<div class='preview-box'>📝 預覽：他{preview2}。</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div class='preview-box'>📝 他{preview2}。</div>", unsafe_allow_html=True)
 
     with st.container(border=True):
         st.markdown("**3. 具體案例與補充資料 (Supplementary Information)**")
-        specific_case = st.text_area("具體行動案例 (將插入至「行動表現」末段)：", "例如於二零二四年四月十日在佐敦道華豐大廈發生的三級火警中，當日作為升降台隊目並以搜救隊身份執行任務。臨危不亂，有條理及清晰地指派各隊員執行任務，最終成功救出被困人士。")
-        events_input = st.text_input("近期參與的部門活動 (將插入至「總結」段落)：", "油尖旺社區應急防火嘉年華2024")
+        st.markdown("具體行動案例 (將插入至「行動表現」末段)：")
+        specific_case = st.text_area("具體行動案例", "例如於二零二四年四月十日在佐敦道華豐大廈發生的三級火警中，當日作為升降台隊目並以搜救隊身份執行任務。臨危不亂，有條理及清晰地指派各隊員執行任務，最終成功救出被困人士。", label_visibility="collapsed")
+        st.markdown("近期參與的部門活動 (將插入至「總結」段落)：")
+        events_input = st.text_input("近期參與的部門活動", "油尖旺社區應急防火嘉年華2024", label_visibility="collapsed")
 
     st.write("") 
 
@@ -411,16 +426,21 @@ with tab1:
                 elif item_name == "16. 支持/參加部門活動":
                     para4_misc.append(content_dict["通用"])
 
-        # 使用新的智能組裝函數，加入「他」、「此外，他」等主語
-        t1_text = build_smart_paragraph(para1_traits, "他")
-        t2_text = build_smart_paragraph(para2_ops, "他")
-        t3_text = build_smart_paragraph(para3_sta, "他")
-        t4_text = build_smart_paragraph(para4_misc, "他")
+        # 根據職級動態決定主語
+        subject = f"{member_name[0]}{member_rank[-2:]}" if member_rank != "消防員" and member_rank != "見習消防員" else f"{member_name[0]}隊員"
+        alt_subjects = ["該員", "其"]
+        
+        t1_text = build_smart_paragraph(para1_traits, "他", alt_subjects)
+        t2_text = build_smart_paragraph(para2_ops, "他", alt_subjects)
+        t3_text = build_smart_paragraph(para3_sta, "他", alt_subjects)
+        t4_text = build_smart_paragraph(para4_misc, "他", alt_subjects)
 
         p1_text = f"【個人特質與紀律】\n{member_rank}{member_name}對工作盡忠職守。{t1_text}"
-        p2_text = f"【行動工作表現】\n在行動工作方面，{member_name[0]}{member_rank[-2:]}表現卓越。{t2_text}這點在他處理實際事故時表露無遺。{specific_case}"
-        p3_text = f"【局內工作表現】\n在局內工作方面，{member_name[0]}{member_rank[-2:]}極之能幹可靠。{t3_text}"
-        p4_text = f"【總結與未來動向】\n{t4_text}例如參與{events_input}。整體來說，他在評核期內各方面工作表現令人滿意，故此我把他的表現評為「{overall_rating.split(' ')[0]}」級。在訓練方面，我建議他{future_plan}。"
+        p2_text = f"【行動工作表現】\n在行動工作方面，{subject}表現卓越。{t2_text}這點在{subject}處理實際事故時表露無遺。{specific_case}"
+        p3_text = f"【局內工作表現】\n在局內工作方面，{subject}極之能幹可靠。{t3_text}"
+        
+        misc_str = f"{t4_text}例如參與{events_input}。" if events_input else t4_text
+        p4_text = f"【總結與未來動向】\n{misc_str}整體來說，該員在評核期內各方面工作表現令人滿意，故此我把他的表現評為「{overall_rating.split(' ')[0]}」級。在訓練方面，我建議他{future_plan}。"
 
         final_text = f"{p1_text}\n\n{p2_text}\n\n{p3_text}\n\n{p4_text}"
         
@@ -445,18 +465,21 @@ with tab2:
             st.warning("📊 資料庫格式有誤：請確保 A 至 E 欄位名稱為「總區」、「年份」、「職級」、「標題」、「考績文章」。")
         else:
             with st.container(border=True):
+                st.markdown("**檔案篩選**")
                 region_ui = st.radio("篩選總區：", ["九龍總區", "香港總區", "新界南總區", "新界北總區"], horizontal=True)
                 region_key = region_ui.replace("總區", "") 
                 
                 col_y, col_r = st.columns(2)
                 with col_y:
+                    st.markdown("年份")
                     years_in_sheet = df["年份"].dropna().astype(str).unique().tolist()
                     years = sorted(years_in_sheet, reverse=True) if years_in_sheet else ["2025", "2024", "2023"]
-                    year_selected = st.selectbox("篩選年份：", years)
+                    year_selected = st.selectbox("篩選年份：", years, label_visibility="collapsed")
                 
                 with col_r:
+                    st.markdown("職級")
                     ranks = ["見習消防員", "消防員", "消防隊目", "消防總隊目"]
-                    rank_selected = st.selectbox("篩選職級：", ranks, index=2)
+                    rank_selected = st.selectbox("篩選職級：", ranks, index=2, label_visibility="collapsed")
                 
             st.write("")
             
@@ -480,7 +503,8 @@ with tab3:
     st.markdown("### FS-278 評分標記系統 (Highlighter)")
     st.caption("將文本貼上，系統會自動辨識並標註對應的 FS-278 指標編號 (1-16)。")
     
-    text_to_highlight = st.text_area("請於下方輸入考績報告文本：", height=200, placeholder="消防隊目王國良對工作盡忠職守，極為嚴守紀律...")
+    st.markdown("請於下方輸入考績報告文本：")
+    text_to_highlight = st.text_area("考績報告文本", height=200, placeholder="消防隊目王國良對工作盡忠職守，極為嚴守紀律...", label_visibility="collapsed")
     
     highlight_keywords = {
         "1": r"(工作認識|特別風險|緊急應變計劃|消防設施|滅火拯救工具.*熟識|常務訓令|消防事務手冊|行政工作程序|車輛保養|局內維修|消防車輛及拯救工具.*使用方法)",
