@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 import re
 from data import fs278_db, highlight_keywords
@@ -7,7 +6,7 @@ from logic import load_gsheet, get_title, build_smart_paragraph
 # ==========================================
 # 介面設置與 CSS 美化
 # ==========================================
-st.set_page_config(page_title="消防考績生成系統", layout="wide")
+st.set_page_config(page_title="Appraisal Generator", layout="wide")
 
 st.markdown("""
     <style>
@@ -22,7 +21,7 @@ st.markdown("""
 # 初始化 Session State (確保切換 Tab 不會流失資料)
 # ==========================================
 if "member_name" not in st.session_state:
-    st.session_state["member_name"] = "王國良"
+    st.session_state["member_name"] = ""  # 已移除預設姓名
 if "specific_case" not in st.session_state:
     st.session_state["specific_case"] = "例如於二零二四年四月十日在佐敦道華豐大廈發生的三級火警中，當日作為升降台隊目並以搜救隊身份執行任務。臨危不亂，有條理及清晰地指派各隊員執行任務，最終成功救出被困人士。"
 if "events_input" not in st.session_state:
@@ -33,8 +32,8 @@ if "future_plan" not in st.session_state:
 # ==========================================
 # 頁面標題
 # ==========================================
-st.markdown('<div class="main-title">員佐級人員考績生成系統 (FS-278)</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">Hong Kong Fire Services Department - Appraisal System</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">Appraisal Generator</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">Appraisal System</div>', unsafe_allow_html=True)
 st.divider()
 
 tab1, tab2, tab3 = st.tabs(["📄 考績生成系統 (Generator)", "📁 考績檔案庫 (Database)", "🖍️ 評分標記 (Highlighter)"])
@@ -60,7 +59,7 @@ with tab1:
             future_plan = st.text_input("未來動向 / 建議訓練", key="future_plan", label_visibility="collapsed")
 
     with st.container(border=True):
-        st.markdown("**2. FS-278 評分細項與寫法款式 (Assessment Criteria)**")
+        st.markdown("**2. 評分細項與寫法款式 (Assessment Criteria)**")
         st.caption("請揀選評級，並於其右方下拉選單選擇不同的文字風格，下方會即時顯示句子預覽。")
         
         with st.expander("點擊展開 / 收起 16 項評分設定", expanded=True):
@@ -208,12 +207,12 @@ with tab2:
 # TAB 3: Highlighter
 # ==========================================
 with tab3:
-    st.markdown("### FS-278 評分標記系統 (Highlighter)")
-    st.caption("將文本貼上，系統會自動辨識並標註對應的 FS-278 指標編號 (1-16)。")
+    st.markdown("### 評分標記系統 (Highlighter)")
+    st.caption("將文本貼上，系統會自動辨識並標註對應的指標編號 (1-16)。")
     
     st.markdown("請於下方輸入考績報告文本：")
     if "text_to_highlight" not in st.session_state:
-        st.session_state["text_to_highlight"] = "消防隊目王國良對工作盡忠職守，極為嚴守紀律..."
+        st.session_state["text_to_highlight"] = "消防隊目陳大文對工作盡忠職守，極為嚴守紀律..."
         
     text_to_highlight = st.text_area("考績報告文本", key="text_to_highlight", height=200, label_visibility="collapsed")
     
@@ -240,6 +239,6 @@ with tab3:
             with st.container(border=True):
                 st.markdown("**📝 分析結果 (Analysis Result)：**")
                 st.markdown(f"<div style='line-height: 2.5; font-size: 16px; padding: 15px; border-radius: 5px; background-color: #f7fafc;'>{highlighted_output}</div>", unsafe_allow_html=True)
-                st.caption("提示：紅線及數字代表對應的 FS-278 指標。")
+                st.caption("提示：紅線及數字代表對應的指標。")
         else:
             st.warning("請先輸入文本方可進行分析。")
